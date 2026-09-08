@@ -158,8 +158,8 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                 다른 앱을 쓰다 돌아와도 시간이 어긋나지 않습니다
               </li>
               <li>
-                다만 <strong className="text-slate-300">화면을 잠그면 완료 소리가 울리지 않습니다.</strong>{' '}
-                서버 없이 동작하는 앱이라 백그라운드 알림을 보낼 수 없습니다. 돌아오면 즉시 알려줍니다
+                <strong className="text-slate-300">화면을 켜둔 채 보고 있을 때만</strong> 완료 알림이 울립니다.
+                자리를 비운 사이 이미 끝났다면 소리 없이 완료 상태와 지난 시간만 보여줍니다
               </li>
               <li>모든 기록은 이 기기에만 저장되며 외부로 나가지 않습니다</li>
             </ul>

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadRunning, saveRunning, clearRunning } from '../utils/storage';
 
+/**
+ * 완료를 이 시간 안에 감지했을 때만 알림을 울린다.
+ * 이보다 늦게 감지했다면 화면이 꺼져 있었다는 뜻이라 알림 없이 상태만 보여준다.
+ */
+const ALERT_GRACE_MS = 2000;
+
 export interface RestTimer {
   /** 남은 시간(ms). 0 이하면 완료 */
   remainingMs: number;
@@ -66,14 +72,19 @@ export function useRestTimer(onFinish: () => void): RestTimer {
   const remainingMs = endsAt === null ? 0 : endsAt - now;
   const isFinished = endsAt !== null && remainingMs <= 0;
 
-  // 완료 알림은 한 번만. 백그라운드에서 지나쳤다면 돌아온 시점에 뒤늦게 울린다.
+  // 완료 알림은 '보고 있는 동안 끝났을 때'만 울린다.
+  // 자리를 비운 사이 이미 끝났다면 몇 분 늦은 알림은 소음일 뿐이므로,
+  // 소리 없이 완료 상태와 "N분 전에 끝남"만 보여준다.
   useEffect(() => {
-    if (isFinished && !finishedRef.current) {
-      finishedRef.current = true;
-      clearRunning();
+    if (!isFinished || finishedRef.current || endsAt === null) return;
+    finishedRef.current = true;
+    clearRunning();
+
+    const lateBy = Date.now() - endsAt;
+    if (lateBy <= ALERT_GRACE_MS && document.visibilityState === 'visible') {
       onFinishRef.current();
     }
-  }, [isFinished]);
+  }, [isFinished, endsAt]);
 
   const start = useCallback((durationMs: number) => {
     const target = Date.now() + durationMs;
