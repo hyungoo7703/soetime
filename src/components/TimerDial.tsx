@@ -4,7 +4,6 @@ interface TimerDialProps {
   remainingMs: number;
   totalMs: number;
   isFinished: boolean;
-  overdueMs: number;
 }
 
 function formatClock(ms: number): string {
@@ -28,8 +27,7 @@ const CIRCUM = 2 * Math.PI * RADIUS;
 export const TimerDial: React.FC<TimerDialProps> = ({
   remainingMs,
   totalMs,
-  isFinished,
-  overdueMs
+  isFinished
 }) => {
   const ratio = totalMs > 0 ? Math.min(1, Math.max(0, remainingMs / totalMs)) : 0;
   const isLast10 = !isFinished && remainingMs > 0 && remainingMs <= 10000;
@@ -70,9 +68,7 @@ export const TimerDial: React.FC<TimerDialProps> = ({
         {isFinished ? (
           <>
             <span className="text-4xl font-black text-emerald-400 tracking-tight">완료</span>
-            <span className="text-xs text-slate-400 mt-1.5">
-              {overdueMs > 1500 ? `${formatElapsed(overdueMs)} 전에 끝남` : '다음 세트 시작'}
-            </span>
+            <span className="text-xs text-slate-400 mt-1.5">다음 세트 시작</span>
           </>
         ) : (
           <>

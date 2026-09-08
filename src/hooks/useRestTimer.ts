@@ -13,8 +13,6 @@ export interface RestTimer {
   totalMs: number;
   isRunning: boolean;
   isFinished: boolean;
-  /** 완료 후 지난 시간(ms). 백그라운드에서 끝난 경우 얼마나 지났는지 보여준다 */
-  overdueMs: number;
   start: (durationMs: number) => void;
   stop: () => void;
   addMs: (deltaMs: number) => void;
@@ -73,8 +71,7 @@ export function useRestTimer(onFinish: () => void): RestTimer {
   const isFinished = endsAt !== null && remainingMs <= 0;
 
   // 완료 알림은 '보고 있는 동안 끝났을 때'만 울린다.
-  // 자리를 비운 사이 이미 끝났다면 몇 분 늦은 알림은 소음일 뿐이므로,
-  // 소리 없이 완료 상태와 "N분 전에 끝남"만 보여준다.
+  // 자리를 비운 사이 이미 끝났다면 몇 분 늦은 알림은 소음일 뿐이라 조용히 넘어간다.
   useEffect(() => {
     if (!isFinished || finishedRef.current || endsAt === null) return;
     finishedRef.current = true;
@@ -122,7 +119,6 @@ export function useRestTimer(onFinish: () => void): RestTimer {
     totalMs,
     isRunning: endsAt !== null && !isFinished,
     isFinished,
-    overdueMs: isFinished ? Math.max(0, -remainingMs) : 0,
     start,
     stop,
     addMs

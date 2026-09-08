@@ -69,7 +69,6 @@ export const App: React.FC = () => {
           remainingMs={timer.remainingMs}
           totalMs={timer.totalMs}
           isFinished={timer.isFinished}
-          overdueMs={timer.overdueMs}
         />
 
         {/* 진행 중 조작 */}
