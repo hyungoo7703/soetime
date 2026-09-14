@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Download, Upload, Copy, Check, Undo2, AlertTriangle } from 'lucide-react';
+import { Download, Upload, Copy, Check, Undo2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Settings } from '../utils/storage';
 import { Routine } from '../utils/routines';
+import { PersistState } from '../utils/persistence';
 import {
   BackupData,
   applyImported,
@@ -15,10 +16,16 @@ import {
 interface BackupSectionProps {
   settings: Settings;
   routines: Routine[];
+  persistState: PersistState;
   onRestore: (data: BackupData) => void;
 }
 
-export const BackupSection: React.FC<BackupSectionProps> = ({ settings, routines, onRestore }) => {
+export const BackupSection: React.FC<BackupSectionProps> = ({
+  settings,
+  routines,
+  persistState,
+  onRestore
+}) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pasted, setPasted] = useState('');
   const [error, setError] = useState('');
@@ -133,6 +140,43 @@ export const BackupSection: React.FC<BackupSectionProps> = ({ settings, routines
         루틴과 설정은 이 기기에만 있습니다. 앱을 지우거나 브라우저 사이트 데이터를 비우면
         복구할 방법이 없으니, 루틴을 손본 뒤에는 파일로 한 번 내보내 두세요.
       </p>
+
+      {/* 자동 삭제 방지 상태. 사용자가 직접 지우는 것은 어차피 막지 못하므로 과장하지 않는다 */}
+      {persistState !== 'checking' && (
+        <div
+          className={`flex items-start gap-2 text-[11px] leading-relaxed rounded-xl p-2.5 border ${
+            persistState === 'persisted'
+              ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
+              : 'bg-slate-800/60 border-slate-700/60 text-slate-300'
+          }`}
+        >
+          {persistState === 'persisted' ? (
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400" />
+          ) : (
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+          )}
+          <span>
+            {persistState === 'persisted' ? (
+              <>
+                <strong className="text-emerald-300">자동 삭제 방지 켜짐.</strong> 기기 용량이 부족해도
+                브라우저가 이 앱의 루틴을 먼저 비우지 않습니다. 단 직접 사이트 데이터를 지우거나 앱을
+                삭제하면 그대로 사라집니다.
+              </>
+            ) : persistState === 'unsupported' ? (
+              <>
+                이 브라우저는 <strong className="text-slate-200">자동 삭제 방지</strong>를 지원하지 않습니다.
+                백업 파일이 유일한 복구 수단입니다.
+              </>
+            ) : (
+              <>
+                <strong className="text-amber-300">자동 삭제 방지가 거절됐습니다.</strong> 기기 용량이
+                부족해지면 브라우저가 예고 없이 루틴을 비울 수 있습니다. 홈 화면에 앱으로 설치하면
+                보통 허가됩니다.
+              </>
+            )}
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <button

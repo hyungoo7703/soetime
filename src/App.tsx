@@ -18,6 +18,7 @@ import {
   totalSets
 } from './utils/routines';
 import { BackupData } from './utils/backup';
+import { requestPersistentStorage, PersistState } from './utils/persistence';
 import { playBeep, vibrate, unlockAudio } from './utils/alert';
 
 function presetLabel(sec: number): string {
@@ -48,6 +49,19 @@ export const App: React.FC = () => {
     const routinesSaved = saveRoutines(routines);
     setIsSaveFailing(!settingsSaved || !routinesSaved);
   }, [settings, routines]);
+
+  // 용량이 빠듯할 때 브라우저가 저장소를 통째로 비우는 것을 막아달라고 한 번 요청한다.
+  // 거절당해도 지금과 같은 상태일 뿐이라 실패를 막지 않는다.
+  const [persistState, setPersistState] = useState<PersistState>('checking');
+  useEffect(() => {
+    let alive = true;
+    requestPersistentStorage().then((state) => {
+      if (alive) setPersistState(state);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleFinish = useCallback(() => {
     if (settings.soundEnabled) playBeep();
@@ -364,6 +378,7 @@ export const App: React.FC = () => {
           settings={settings}
           routines={routines}
           wakeLockState={wakeLockState}
+          persistState={persistState}
           onChange={setSettings}
           onRestore={restoreBackup}
           onClose={() => setIsSettingsOpen(false)}

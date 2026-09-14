@@ -4,12 +4,14 @@ import { Settings, DEFAULT_PRESETS_SEC } from '../utils/storage';
 import { Routine } from '../utils/routines';
 import { BackupData } from '../utils/backup';
 import { BackupSection } from './BackupSection';
+import { PersistState } from '../utils/persistence';
 import { WakeLockState } from '../hooks/useWakeLock';
 
 interface SettingsSheetProps {
   settings: Settings;
   routines: Routine[];
   wakeLockState: WakeLockState;
+  persistState: PersistState;
   onChange: (next: Settings) => void;
   onRestore: (data: BackupData) => void;
   onClose: () => void;
@@ -28,6 +30,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   settings,
   routines,
   wakeLockState,
+  persistState,
   onChange,
   onRestore,
   onClose
@@ -153,7 +156,12 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             />
           </section>
 
-          <BackupSection settings={settings} routines={routines} onRestore={onRestore} />
+          <BackupSection
+            settings={settings}
+            routines={routines}
+            persistState={persistState}
+            onRestore={onRestore}
+          />
 
           {/* 한계 안내 */}
           <section className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-3 space-y-1">
