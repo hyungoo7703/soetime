@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Settings as SettingsIcon, Square, RotateCcw, Sun, Timer, ListChecks, Pencil, Play } from 'lucide-react';
+import { Settings as SettingsIcon, Square, RotateCcw, Sun, Timer, ListChecks, Pencil, Play, AlertTriangle } from 'lucide-react';
 import { TimerDial } from './components/TimerDial';
 import { SettingsSheet } from './components/SettingsSheet';
 import { RoutineRunner } from './components/RoutineRunner';
@@ -38,13 +38,16 @@ export const App: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [finishedRoutineId, setFinishedRoutineId] = useState<string | null>(null);
 
-  useEffect(() => {
-    saveSettings(settings);
-  }, [settings]);
+  // 저장 실패를 조용히 넘기면 앱은 정상처럼 보이면서 편집한 루틴이 사라진다.
+  // 용량 초과나 시크릿 모드에서 실제로 일어나므로 화면에 알려야 한다.
+  const [isSaveFailing, setIsSaveFailing] = useState(false);
 
   useEffect(() => {
-    saveRoutines(routines);
-  }, [routines]);
+    // 둘 다 호출한다. &&로 묶으면 앞이 실패했을 때 뒤가 아예 저장되지 않는다.
+    const settingsSaved = saveSettings(settings);
+    const routinesSaved = saveRoutines(routines);
+    setIsSaveFailing(!settingsSaved || !routinesSaved);
+  }, [settings, routines]);
 
   const handleFinish = useCallback(() => {
     if (settings.soundEnabled) playBeep();
@@ -193,6 +196,28 @@ export const App: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* 저장 실패 경고. 데이터를 잃을 수 있는 상황이라 닫을 수 없게 둔다. */}
+        {isSaveFailing && (
+          <div className="-mx-4 mt-1 bg-rose-950/95 border-y border-rose-700/60 px-4 py-2.5">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-rose-200">저장되지 않고 있습니다</p>
+                <p className="text-[11px] text-rose-300/90 leading-relaxed mt-0.5">
+                  저장 공간이 가득 찼거나 브라우저가 저장을 막고 있습니다. 지금 고친 루틴은
+                  앱을 닫으면 사라집니다.
+                </p>
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="mt-1.5 px-2.5 py-1 rounded-lg bg-rose-900/80 border border-rose-600/60 text-[11px] font-semibold text-rose-100 hover:bg-rose-900 transition active:scale-95"
+                >
+                  지금 백업 파일로 내보내기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 px-4 py-4 flex flex-col">
