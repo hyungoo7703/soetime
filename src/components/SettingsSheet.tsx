@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Volume2, VolumeX, Vibrate, Sun, AlertTriangle } from 'lucide-react';
 import { Settings, DEFAULT_PRESETS_SEC } from '../utils/storage';
+import { Routine } from '../utils/routines';
+import { BackupData } from '../utils/backup';
+import { BackupSection } from './BackupSection';
 import { WakeLockState } from '../hooks/useWakeLock';
 
 interface SettingsSheetProps {
   settings: Settings;
+  routines: Routine[];
   wakeLockState: WakeLockState;
   onChange: (next: Settings) => void;
+  onRestore: (data: BackupData) => void;
   onClose: () => void;
 }
 
@@ -21,8 +26,10 @@ const vibrateSupported = typeof navigator !== 'undefined' && 'vibrate' in naviga
 
 export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   settings,
+  routines,
   wakeLockState,
   onChange,
+  onRestore,
   onClose
 }) => {
   const [newPreset, setNewPreset] = useState('');
@@ -146,6 +153,8 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             />
           </section>
 
+          <BackupSection settings={settings} routines={routines} onRestore={onRestore} />
+
           {/* 한계 안내 */}
           <section className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-3 space-y-1">
             <div className="flex items-center gap-1.5 text-amber-400">
@@ -161,7 +170,10 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                 <strong className="text-slate-300">화면을 켜둔 채 보고 있을 때만</strong> 완료 알림이 울립니다.
                 자리를 비운 사이 이미 끝났다면 소리 없이 완료 상태와 지난 시간만 보여줍니다
               </li>
-              <li>모든 기록은 이 기기에만 저장되며 외부로 나가지 않습니다</li>
+              <li>
+                모든 기록은 <strong className="text-slate-300">이 기기에만</strong> 저장되며 외부로 나가지 않습니다.
+                기기를 바꾸거나 앱을 지우기 전에는 위에서 백업을 내보내 주세요
+              </li>
             </ul>
           </section>
         </div>

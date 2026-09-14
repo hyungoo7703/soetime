@@ -17,6 +17,7 @@ import {
   clearProgress,
   totalSets
 } from './utils/routines';
+import { BackupData } from './utils/backup';
 import { playBeep, vibrate, unlockAudio } from './utils/alert';
 
 function presetLabel(sec: number): string {
@@ -128,6 +129,16 @@ export const App: React.FC = () => {
     const next = { ...progress, exerciseIndex: progress.exerciseIndex + 1, completedSets: 0 };
     setProgress(next);
     saveProgress(next);
+    timer.stop();
+  };
+
+  /** 복원하면 루틴 id가 통째로 바뀐다. 진행 중이던 세트는 가리킬 곳이 없으므로 접는다. */
+  const restoreBackup = (data: BackupData) => {
+    setSettings(data.settings);
+    setRoutines(data.routines);
+    setProgress(null);
+    setFinishedRoutineId(null);
+    clearProgress();
     timer.stop();
   };
 
@@ -326,8 +337,10 @@ export const App: React.FC = () => {
       {isSettingsOpen && (
         <SettingsSheet
           settings={settings}
+          routines={routines}
           wakeLockState={wakeLockState}
           onChange={setSettings}
+          onRestore={restoreBackup}
           onClose={() => setIsSettingsOpen(false)}
         />
       )}

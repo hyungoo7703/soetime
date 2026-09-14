@@ -94,27 +94,29 @@ function toExercise(raw: any): Exercise | null {
   };
 }
 
+/** 저장소와 백업 파일이 같은 검증을 지나가도록 한 곳에 모은다. */
+export function sanitizeRoutines(raw: unknown): Routine[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r: any): Routine | null => {
+      const name = typeof r?.name === 'string' ? r.name.trim() : '';
+      if (!name) return null;
+      return {
+        id: typeof r?.id === 'string' && r.id ? r.id : generateId(),
+        name,
+        exercises: Array.isArray(r?.exercises)
+          ? r.exercises.map(toExercise).filter((e: Exercise | null): e is Exercise => e !== null)
+          : []
+      };
+    })
+    .filter((r: Routine | null): r is Routine => r !== null);
+}
+
 export function loadRoutines(): Routine[] {
   try {
     const raw = localStorage.getItem(ROUTINES_KEY);
     if (!raw) return createDefaultRoutines();
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return createDefaultRoutines();
-
-    const routines = parsed
-      .map((r: any): Routine | null => {
-        const name = typeof r?.name === 'string' ? r.name.trim() : '';
-        if (!name) return null;
-        return {
-          id: typeof r?.id === 'string' && r.id ? r.id : generateId(),
-          name,
-          exercises: Array.isArray(r?.exercises)
-            ? r.exercises.map(toExercise).filter((e: Exercise | null): e is Exercise => e !== null)
-            : []
-        };
-      })
-      .filter((r: Routine | null): r is Routine => r !== null);
-
+    const routines = sanitizeRoutines(JSON.parse(raw));
     return routines.length > 0 ? routines : createDefaultRoutines();
   } catch (err) {
     console.error('Failed to load routines', err);
@@ -122,11 +124,13 @@ export function loadRoutines(): Routine[] {
   }
 }
 
-export function saveRoutines(routines: Routine[]): void {
+export function saveRoutines(routines: Routine[]): boolean {
   try {
     localStorage.setItem(ROUTINES_KEY, JSON.stringify(routines));
+    return true;
   } catch (err) {
     console.error('Failed to save routines', err);
+    return false;
   }
 }
 

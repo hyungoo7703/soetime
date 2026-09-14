@@ -18,33 +18,40 @@ export const DEFAULT_SETTINGS: Settings = {
   keepScreenOn: true
 };
 
+/** 저장소와 백업 파일이 같은 검증을 지나가도록 한 곳에 모은다. */
+export function sanitizeSettings(raw: unknown): Settings {
+  const parsed = raw as any;
+  const presets = Array.isArray(parsed?.presetsSec)
+    ? parsed.presetsSec
+        .map((n: unknown) => Math.round(Number(n)))
+        .filter((n: number) => Number.isFinite(n) && n > 0 && n <= 3600)
+    : [];
+  return {
+    presetsSec: presets.length > 0 ? presets : [...DEFAULT_PRESETS_SEC],
+    soundEnabled: parsed?.soundEnabled !== false,
+    vibrateEnabled: parsed?.vibrateEnabled !== false,
+    keepScreenOn: parsed?.keepScreenOn !== false
+  };
+}
+
 export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
-    const parsed = JSON.parse(raw);
-    const presets = Array.isArray(parsed?.presetsSec)
-      ? parsed.presetsSec
-          .map((n: unknown) => Math.round(Number(n)))
-          .filter((n: number) => Number.isFinite(n) && n > 0 && n <= 3600)
-      : [];
-    return {
-      presetsSec: presets.length > 0 ? presets : [...DEFAULT_PRESETS_SEC],
-      soundEnabled: parsed?.soundEnabled !== false,
-      vibrateEnabled: parsed?.vibrateEnabled !== false,
-      keepScreenOn: parsed?.keepScreenOn !== false
-    };
+    return sanitizeSettings(JSON.parse(raw));
   } catch (err) {
     console.error('Failed to load settings', err);
     return { ...DEFAULT_SETTINGS };
   }
 }
 
-export function saveSettings(settings: Settings): void {
+export function saveSettings(settings: Settings): boolean {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    return true;
   } catch (err) {
     console.error('Failed to save settings', err);
+    return false;
   }
 }
 
