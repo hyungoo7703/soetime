@@ -176,7 +176,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               </li>
               <li>
                 <strong className="text-slate-300">화면을 켜둔 채 보고 있을 때만</strong> 완료 알림이 울립니다.
-                자리를 비운 사이 이미 끝났다면 소리 없이 완료 상태와 지난 시간만 보여줍니다
+                자리를 비운 사이 이미 끝났다면 뒤늦게 울리지 않습니다
               </li>
               <li>
                 모든 기록은 <strong className="text-slate-300">이 기기에만</strong> 저장되며 외부로 나가지 않습니다.
