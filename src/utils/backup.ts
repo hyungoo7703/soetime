@@ -1,13 +1,15 @@
 import { Settings, loadSettings, saveSettings, sanitizeSettings } from './storage';
 import { Routine, loadRoutines, saveRoutines, sanitizeRoutines, totalSets } from './routines';
+import { Rotation, loadRotation, saveRotation, sanitizeRotation } from './rotation';
 
 const BACKUP_APP_ID = 'soetime';
-const BACKUP_SCHEMA_VERSION = 1;
+const BACKUP_SCHEMA_VERSION = 2;
 const PREIMPORT_KEY = 'SOETIME_PREIMPORT_V1';
 
 export interface BackupData {
   settings: Settings;
   routines: Routine[];
+  rotation: Rotation;
 }
 
 export interface BackupSummary {
@@ -29,7 +31,8 @@ export function summarize(data: BackupData, exportedAt?: string): BackupSummary 
 }
 
 export function readCurrent(): BackupData {
-  return { settings: loadSettings(), routines: loadRoutines() };
+  const routines = loadRoutines();
+  return { settings: loadSettings(), routines, rotation: loadRotation(routines) };
 }
 
 export function exportBackupJson(data: BackupData): string {
@@ -39,7 +42,8 @@ export function exportBackupJson(data: BackupData): string {
     schemaVersion: BACKUP_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     settings: data.settings,
-    routines: data.routines
+    routines: data.routines,
+    rotation: data.rotation
   };
   return JSON.stringify(backup, null, 2);
 }
@@ -70,7 +74,12 @@ export function parseBackupJson(jsonStr: string): { data: BackupData; summary: B
     throw new Error('복원할 루틴이 하나도 없습니다. 빈 내용으로 덮어쓰지 않았습니다.');
   }
 
-  const data: BackupData = { settings: sanitizeSettings(parsed.settings), routines };
+  // 추천 순서가 없는 예전 백업(스키마 1)은 sanitizeRotation이 기본 순서를 채운다
+  const data: BackupData = {
+    settings: sanitizeSettings(parsed.settings),
+    routines,
+    rotation: sanitizeRotation(parsed.rotation, routines)
+  };
   const exportedAt = typeof parsed.exportedAt === 'string' ? parsed.exportedAt : undefined;
   return { data, summary: summarize(data, exportedAt) };
 }
@@ -87,11 +96,13 @@ export function readPreimportSnapshot(): PreimportSnapshot | null {
     const parsed = JSON.parse(raw);
     const savedAt = Number(parsed?.savedAt);
     if (!Number.isFinite(savedAt) || !Array.isArray(parsed?.routines)) return null;
+    const routines = sanitizeRoutines(parsed.routines);
     return {
       savedAt,
       data: {
         settings: sanitizeSettings(parsed.settings),
-        routines: sanitizeRoutines(parsed.routines)
+        routines,
+        rotation: sanitizeRotation(parsed.rotation, routines)
       }
     };
   } catch {
@@ -116,7 +127,7 @@ export function applyImported(data: BackupData): void {
   try {
     localStorage.setItem(
       PREIMPORT_KEY,
-      JSON.stringify({ savedAt: Date.now(), settings: current.settings, routines: current.routines })
+      JSON.stringify({ savedAt: Date.now(), ...current })
     );
   } catch (err) {
     console.error('Failed to snapshot before import', err);
@@ -124,7 +135,8 @@ export function applyImported(data: BackupData): void {
 
   const routinesSaved = saveRoutines(data.routines);
   const settingsSaved = saveSettings(data.settings);
-  if (!routinesSaved || !settingsSaved) {
+  const rotationSaved = saveRotation(data.rotation);
+  if (!routinesSaved || !settingsSaved || !rotationSaved) {
     throw new Error('저장 공간이 부족해 복원을 마치지 못했습니다. 브라우저 저장 공간을 비우고 다시 시도해 주세요.');
   }
 }

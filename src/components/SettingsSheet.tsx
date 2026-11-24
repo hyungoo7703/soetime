@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus, Trash2, Volume2, VolumeX, Vibrate, Sun, AlertTriangle } from 'lucide-react';
 import { Settings, DEFAULT_PRESETS_SEC } from '../utils/storage';
 import { Routine } from '../utils/routines';
+import { Rotation, MAX_ORDER_LENGTH } from '../utils/rotation';
 import { BackupData } from '../utils/backup';
 import { BackupSection } from './BackupSection';
 import { PersistState } from '../utils/persistence';
@@ -10,9 +11,11 @@ import { WakeLockState } from '../hooks/useWakeLock';
 interface SettingsSheetProps {
   settings: Settings;
   routines: Routine[];
+  rotation: Rotation;
   wakeLockState: WakeLockState;
   persistState: PersistState;
   onChange: (next: Settings) => void;
+  onChangeRotation: (next: Rotation) => void;
   onRestore: (data: BackupData) => void;
   onClose: () => void;
 }
@@ -29,9 +32,11 @@ const vibrateSupported = typeof navigator !== 'undefined' && 'vibrate' in naviga
 export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   settings,
   routines,
+  rotation,
   wakeLockState,
   persistState,
   onChange,
+  onChangeRotation,
   onRestore,
   onClose
 }) => {
@@ -119,6 +124,60 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             </form>
           </section>
 
+          {/* 추천 순서 */}
+          <section>
+            <h3 className="text-xs font-bold text-slate-300 mb-1">루틴 추천 순서</h3>
+            <p className="text-[11px] text-slate-500 leading-relaxed mb-2">
+              루틴을 끝내 도장이 찍히면 이 순서에서 다음 차례를 알려줍니다. 한 주를 덜 채워도
+              순서는 처음으로 돌아가지 않고 이어집니다.
+            </p>
+            <ol className="flex flex-wrap gap-1.5 mb-2">
+              {rotation.order.map((routineId, i) => {
+                const name = routines.find((r) => r.id === routineId)?.name ?? '지워진 루틴';
+                return (
+                  <li
+                    key={`${routineId}-${i}`}
+                    className="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg pl-2 pr-1 py-1 text-xs text-slate-200"
+                  >
+                    <span className="text-slate-500 tabular-nums">{i + 1}</span>
+                    {name}
+                    <button
+                      onClick={() =>
+                        onChangeRotation({
+                          ...rotation,
+                          order: rotation.order.filter((_, j) => j !== i)
+                        })
+                      }
+                      className="p-0.5 text-slate-500 hover:text-rose-400 transition"
+                      aria-label={`${i + 1}번째 ${name} 빼기`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </li>
+                );
+              })}
+              {rotation.order.length === 0 && (
+                <li className="text-[11px] text-slate-500">순서가 비어 있어 추천하지 않습니다.</li>
+              )}
+            </ol>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-slate-500">맨 뒤에 추가</span>
+              {routines.map((routine) => (
+                <button
+                  key={routine.id}
+                  onClick={() =>
+                    onChangeRotation({ ...rotation, order: [...rotation.order, routine.id] })
+                  }
+                  disabled={rotation.order.length >= MAX_ORDER_LENGTH}
+                  className="inline-flex items-center gap-0.5 px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 disabled:opacity-40 transition active:scale-95"
+                >
+                  <Plus className="w-3 h-3" />
+                  {routine.name}
+                </button>
+              ))}
+            </div>
+          </section>
+
           {/* 알림 */}
           <section className="space-y-2">
             <h3 className="text-xs font-bold text-slate-300">완료 알림</h3>
@@ -159,6 +218,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
           <BackupSection
             settings={settings}
             routines={routines}
+            rotation={rotation}
             persistState={persistState}
             onRestore={onRestore}
           />

@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Download, Upload, Copy, Check, Undo2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Download, Upload, Copy, Check, Undo2, AlertTriangle, ShieldCheck, ListRestart } from 'lucide-react';
 import { Settings } from '../utils/storage';
-import { Routine } from '../utils/routines';
+import { Routine, createDefaultRoutines } from '../utils/routines';
+import { Rotation, defaultOrder } from '../utils/rotation';
 import { PersistState } from '../utils/persistence';
 import {
   BackupData,
@@ -16,6 +17,7 @@ import {
 interface BackupSectionProps {
   settings: Settings;
   routines: Routine[];
+  rotation: Rotation;
   persistState: PersistState;
   onRestore: (data: BackupData) => void;
 }
@@ -23,6 +25,7 @@ interface BackupSectionProps {
 export const BackupSection: React.FC<BackupSectionProps> = ({
   settings,
   routines,
+  rotation,
   persistState,
   onRestore
 }) => {
@@ -33,7 +36,7 @@ export const BackupSection: React.FC<BackupSectionProps> = ({
   const [restored, setRestored] = useState(false);
   const [snapshot, setSnapshot] = useState(() => readPreimportSnapshot());
 
-  const current: BackupData = { settings, routines };
+  const current: BackupData = { settings, routines, rotation };
 
   const handleDownload = () => {
     const blob = new Blob([exportBackupJson(current)], { type: 'application/json' });
@@ -55,6 +58,22 @@ export const BackupSection: React.FC<BackupSectionProps> = ({
     } catch {
       setError('클립보드 복사에 실패했습니다. 파일로 내보내기를 써 주세요.');
     }
+  };
+
+  /** 직전 상태를 한 벌 남기고 통째로 교체한다. 실패하면 화면에 알리고 false를 돌려준다. */
+  const replaceWith = (data: BackupData, failMessage: string): boolean => {
+    try {
+      applyImported(data);
+    } catch (err: any) {
+      setError(err.message || failMessage);
+      return false;
+    }
+    onRestore(data);
+    setSnapshot(readPreimportSnapshot());
+    setError('');
+    setRestored(true);
+    setTimeout(() => setRestored(false), 3000);
+    return true;
   };
 
   // 검증 → 내용 확인 → 적용. 확인 전에는 기존 루틴을 건드리지 않는다.
@@ -85,19 +104,7 @@ export const BackupSection: React.FC<BackupSectionProps> = ({
     );
     if (!proceed) return;
 
-    try {
-      applyImported(parsed.data);
-    } catch (err: any) {
-      setError(err.message || '복원에 실패했습니다.');
-      return;
-    }
-
-    onRestore(parsed.data);
-    setSnapshot(readPreimportSnapshot());
-    setError('');
-    setRestored(true);
-    onDone?.();
-    setTimeout(() => setRestored(false), 3000);
+    if (replaceWith(parsed.data, '복원에 실패했습니다.')) onDone?.();
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,17 +127,23 @@ export const BackupSection: React.FC<BackupSectionProps> = ({
     if (!snapshot) return;
     const at = new Date(snapshot.savedAt).toLocaleString('ko-KR');
     if (!window.confirm(`${at} 상태로 되돌립니다.\n지금 루틴과 설정은 사라집니다. 계속할까요?`)) return;
-    try {
-      applyImported(snapshot.data);
-    } catch (err: any) {
-      setError(err.message || '되돌리기에 실패했습니다.');
-      return;
-    }
-    onRestore(snapshot.data);
-    setSnapshot(readPreimportSnapshot());
-    setError('');
-    setRestored(true);
-    setTimeout(() => setRestored(false), 3000);
+    replaceWith(snapshot.data, '되돌리기에 실패했습니다.');
+  };
+
+  // 기본 루틴은 첫 실행에만 들어가므로, 이미 쓰던 기기는 이 버튼으로 받는다. 설정과 도장은 그대로 둔다.
+  const handleUseDefaults = () => {
+    const proceed = window.confirm(
+      `루틴을 기본 루틴(전신데이 · 빈약채우기데이 · 타깃채우기데이)으로 모두 바꿉니다.\n` +
+        `지금 루틴 ${routines.length}개는 사라지고, 추천 순서도 전신 - 빈약 - 전신 - 타깃으로 바뀝니다.\n` +
+        `바꾸기 직전 상태는 자동으로 저장되어 '되돌리기'로 복구할 수 있습니다.\n\n` +
+        `계속할까요?`
+    );
+    if (!proceed) return;
+    const defaults = createDefaultRoutines();
+    replaceWith(
+      { settings, routines: defaults, rotation: { ...rotation, order: defaultOrder(defaults), baseIndex: 0 } },
+      '기본 루틴으로 바꾸지 못했습니다.'
+    );
   };
 
   return (
@@ -232,6 +245,14 @@ export const BackupSection: React.FC<BackupSectionProps> = ({
         </div>
       </details>
 
+      <button
+        onClick={handleUseDefaults}
+        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold active:scale-95 transition"
+      >
+        <ListRestart className="w-4 h-4" />
+        기본 루틴으로 바꾸기
+      </button>
+
       {snapshot && (
         <>
           <button
@@ -256,7 +277,7 @@ export const BackupSection: React.FC<BackupSectionProps> = ({
       {restored && (
         <p className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
           <Check className="w-3.5 h-3.5" />
-          복원했습니다
+          적용했습니다
         </p>
       )}
       {error && (

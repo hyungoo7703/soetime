@@ -4,6 +4,7 @@ import { TimerDial } from './components/TimerDial';
 import { SettingsSheet } from './components/SettingsSheet';
 import { RoutineRunner } from './components/RoutineRunner';
 import { RoutineEditSheet } from './components/RoutineEditSheet';
+import { WeekStamps } from './components/WeekStamps';
 import { useRestTimer } from './hooks/useRestTimer';
 import { useWakeLock } from './hooks/useWakeLock';
 import { loadSettings, saveSettings, Settings } from './utils/storage';
@@ -17,6 +18,7 @@ import {
   clearProgress,
   totalSets
 } from './utils/routines';
+import { Rotation, loadRotation, saveRotation, setStamp, nextRoutineId, toDateKey } from './utils/rotation';
 import { BackupData } from './utils/backup';
 import { requestPersistentStorage, PersistState } from './utils/persistence';
 import { playBeep, vibrate, unlockAudio } from './utils/alert';
@@ -35,6 +37,7 @@ export const App: React.FC = () => {
 
   const [tab, setTab] = useState<'timer' | 'routine'>('timer');
   const [routines, setRoutines] = useState<Routine[]>(() => loadRoutines());
+  const [rotation, setRotation] = useState<Rotation>(() => loadRotation(routines));
   const [progress, setProgress] = useState<RoutineProgress | null>(() => loadProgress());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [finishedRoutineId, setFinishedRoutineId] = useState<string | null>(null);
@@ -44,11 +47,12 @@ export const App: React.FC = () => {
   const [isSaveFailing, setIsSaveFailing] = useState(false);
 
   useEffect(() => {
-    // 둘 다 호출한다. &&로 묶으면 앞이 실패했을 때 뒤가 아예 저장되지 않는다.
+    // 전부 호출한다. &&로 묶으면 앞이 실패했을 때 뒤가 아예 저장되지 않는다.
     const settingsSaved = saveSettings(settings);
     const routinesSaved = saveRoutines(routines);
-    setIsSaveFailing(!settingsSaved || !routinesSaved);
-  }, [settings, routines]);
+    const rotationSaved = saveRotation(rotation);
+    setIsSaveFailing(!settingsSaved || !routinesSaved || !rotationSaved);
+  }, [settings, routines, rotation]);
 
   // 용량이 빠듯할 때 브라우저가 저장소를 통째로 비우는 것을 막아달라고 한 번 요청한다.
   // 거절당해도 지금과 같은 상태일 뿐이라 실패를 막지 않는다.
@@ -102,6 +106,15 @@ export const App: React.FC = () => {
     timer.stop();
   };
 
+  /** 루틴을 끝까지 가면 오늘 날짜에 도장을 찍는다. 중단한 루틴은 찍지 않는다. */
+  const finishRoutine = (routineId: string) => {
+    setFinishedRoutineId(routineId);
+    setProgress(null);
+    clearProgress();
+    timer.stop();
+    setRotation((prev) => setStamp(prev, toDateKey(new Date()), routineId));
+  };
+
   /** 세트를 끝내면 진행을 먼저 옮기고 휴식을 시작한다. 마지막 세트면 휴식 없이 끝난다. */
   const completeSet = () => {
     if (!progress || !activeRoutine) return;
@@ -114,10 +127,7 @@ export const App: React.FC = () => {
     const isLastExercise = progress.exerciseIndex >= activeRoutine.exercises.length - 1;
 
     if (isLastSet && isLastExercise) {
-      setFinishedRoutineId(activeRoutine.id);
-      setProgress(null);
-      clearProgress();
-      timer.stop();
+      finishRoutine(activeRoutine.id);
       return;
     }
 
@@ -137,10 +147,7 @@ export const App: React.FC = () => {
     if (!progress || !activeRoutine) return;
     const isLastExercise = progress.exerciseIndex >= activeRoutine.exercises.length - 1;
     if (isLastExercise) {
-      setFinishedRoutineId(activeRoutine.id);
-      setProgress(null);
-      clearProgress();
-      timer.stop();
+      finishRoutine(activeRoutine.id);
       return;
     }
     const next = { ...progress, exerciseIndex: progress.exerciseIndex + 1, completedSets: 0 };
@@ -153,6 +160,7 @@ export const App: React.FC = () => {
   const restoreBackup = (data: BackupData) => {
     setSettings(data.settings);
     setRoutines(data.routines);
+    setRotation(data.rotation);
     setProgress(null);
     setFinishedRoutineId(null);
     clearProgress();
@@ -161,6 +169,7 @@ export const App: React.FC = () => {
 
   const isIdle = !timer.isRunning && !timer.isFinished;
   const editingRoutine = editingId ? routines.find((r) => r.id === editingId) ?? null : null;
+  const recommendedId = nextRoutineId(rotation);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans max-w-lg mx-auto border-x border-slate-900 relative">
@@ -326,6 +335,7 @@ export const App: React.FC = () => {
             progress={{ routineId: finishedRoutine.id, exerciseIndex: 0, completedSets: 0 }}
             timer={timer}
             isDone
+            nextRoutineName={routines.find((r) => r.id === recommendedId)?.name}
             onCompleteSet={() => {}}
             onSkipRest={() => {}}
             onSkipExercise={() => {}}
@@ -333,23 +343,40 @@ export const App: React.FC = () => {
           />
         ) : (
           <section className="space-y-2">
-            <h2 className="text-xs font-bold text-slate-400 mb-2 px-1">오늘 할 루틴을 고르세요</h2>
+            <WeekStamps
+              rotation={rotation}
+              routines={routines}
+              onStamp={(date, routineId) => setRotation((prev) => setStamp(prev, date, routineId))}
+            />
+            <h2 className="text-xs font-bold text-slate-400 pt-2 px-1">오늘 할 루틴을 고르세요</h2>
             {routines.map((routine) => (
               <div
                 key={routine.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3"
+                className={`bg-slate-900 border rounded-2xl p-4 flex items-center gap-3 ${
+                  routine.id === recommendedId ? 'border-indigo-500/60' : 'border-slate-800'
+                }`}
               >
                 <button
                   onClick={() => startRoutine(routine)}
                   disabled={routine.exercises.length === 0}
                   className="flex-1 min-w-0 text-left active:scale-[0.99] transition disabled:opacity-50"
                 >
-                  <p className="text-lg font-black text-white">{routine.name}</p>
+                  <p className="flex items-center gap-2 text-lg font-black text-white">
+                    <span className="truncate">{routine.name}</span>
+                    {routine.id === recommendedId && (
+                      <span className="shrink-0 text-[10px] font-bold text-indigo-200 bg-indigo-600/40 border border-indigo-400/40 px-1.5 py-0.5 rounded">
+                        다음 차례
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     {routine.exercises.length === 0
                       ? '운동을 먼저 추가해 주세요'
                       : `운동 ${routine.exercises.length}개 · 총 ${totalSets(routine)}세트`}
                   </p>
+                  {routine.note && (
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{routine.note}</p>
+                  )}
                 </button>
 
                 <button
@@ -377,6 +404,8 @@ export const App: React.FC = () => {
         <SettingsSheet
           settings={settings}
           routines={routines}
+          rotation={rotation}
+          onChangeRotation={setRotation}
           wakeLockState={wakeLockState}
           persistState={persistState}
           onChange={setSettings}

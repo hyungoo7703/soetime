@@ -36,7 +36,7 @@ export const RoutineEditSheet: React.FC<RoutineEditSheetProps> = ({
     if (!name) return;
     onChange({
       ...routine,
-      exercises: [...routine.exercises, { id: generateId(), name, sets: 4, restSec: 90 }]
+      exercises: [...routine.exercises, { id: generateId(), name, sets: 4, restSec: 90, reps: '', note: '' }]
     });
     setNewName('');
   };
@@ -62,7 +62,16 @@ export const RoutineEditSheet: React.FC<RoutineEditSheetProps> = ({
           </button>
         </div>
 
-        <div className="space-y-2 pt-4">
+        <textarea
+          value={routine.note}
+          onChange={(e) => onChange({ ...routine, note: e.target.value })}
+          placeholder="루틴 메모 (예: 매 세트 1~2개 남기고 끊기)"
+          rows={2}
+          maxLength={200}
+          className="w-full mt-3 resize-none bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed"
+        />
+
+        <div className="space-y-2 pt-3">
           {routine.exercises.map((ex, i) => (
             <div key={ex.id} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5">
               <div className="flex items-center gap-2">
@@ -137,6 +146,26 @@ export const RoutineEditSheet: React.FC<RoutineEditSheetProps> = ({
                   />
                   <span className="text-[10px] text-slate-500">초 = {formatRest(ex.restSec)}</span>
                 </label>
+              </div>
+
+              {/* 목표 횟수와 포인트는 안내 문구다. 실제로 한 횟수를 기록하지 않는다 */}
+              <div className="flex items-center gap-2 mt-2 pl-6">
+                <input
+                  type="text"
+                  value={ex.reps}
+                  onChange={(e) => updateExercise(ex.id, { reps: e.target.value })}
+                  placeholder="횟수 (6~10회)"
+                  maxLength={20}
+                  className="w-24 shrink-0 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                />
+                <input
+                  type="text"
+                  value={ex.note}
+                  onChange={(e) => updateExercise(ex.id, { note: e.target.value })}
+                  placeholder="포인트 메모"
+                  maxLength={120}
+                  className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                />
               </div>
             </div>
           ))}

@@ -6,11 +6,17 @@ export interface Exercise {
   name: string;
   sets: number;
   restSec: number;
+  /** 목표 반복 횟수 안내 문구 ("6~10회"). 실제로 한 횟수를 적는 칸이 아니다 */
+  reps: string;
+  /** 자세·강도 포인트 한 줄 */
+  note: string;
 }
 
 export interface Routine {
   id: string;
   name: string;
+  /** 루틴 전체에 대한 메모 ("매 세트 1~2개 남기고 끊기") */
+  note: string;
   exercises: Exercise[];
 }
 
@@ -27,58 +33,73 @@ export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-const seed = (name: string, sets: number, restSec: number): Exercise => ({
+const seed = (name: string, sets: number, restSec: number, reps: string, note: string): Exercise => ({
   id: generateId(),
   name,
   sets,
-  restSec
+  restSec,
+  reps,
+  note
 });
 
-/** 첫 실행에 빈 화면을 주지 않도록 기본 루틴을 채워둔다. 전부 편집 가능하다. */
+// 기본 루틴의 id는 고정한다. 추천 순서(DEFAULT_ROTATION_ORDER)가 이 id를 가리킨다.
+const FULL_BODY_ID = 'default-full';
+const WEAK_POINT_ID = 'default-weak';
+const TARGET_ID = 'default-target';
+
+/** 기본 루틴을 도는 차례: 전신 - 빈약 - 전신 - 타깃 */
+export const DEFAULT_ROTATION_ORDER = [FULL_BODY_ID, WEAK_POINT_ID, FULL_BODY_ID, TARGET_ID];
+
+/**
+ * 첫 실행에 빈 화면을 주지 않도록 기본 루틴을 채워둔다. 전부 편집 가능하다.
+ * 세트는 권장 범위의 큰 쪽(컨디션이 나쁘면 '이 운동 건너뛰기'), 휴식은 범위의 가운데 값이다.
+ */
 export function createDefaultRoutines(): Routine[] {
   return [
     {
-      id: generateId(),
-      name: '등',
+      id: FULL_BODY_ID,
+      name: '전신데이',
+      note: '매 세트 실패 지점까지 가지 않고 1~2개 남기고 끊습니다. 그래야 마지막 데드리프트까지 집중력이 남습니다.',
       exercises: [
-        seed('랫 풀다운', 4, 90),
-        seed('시티드 로우', 4, 90),
-        seed('바벨 로우', 4, 120),
-        seed('풀업', 3, 120)
+        seed('풀업', 4, 135, '6~10회', '웜업 겸 상체 당기기. 중량을 달 수 있으면 6~8회'),
+        seed('프론트 스쿼트', 4, 165, '6~8회', '코어와 상체 각도가 무너지기 직전까지. 마지막 1~2개는 남기기'),
+        seed('오버헤드 프레스', 3, 135, '6~10회', '반동 없이 엄격한 자세로'),
+        seed('벤치 프레스', 3, 135, '6~10회', '오버헤드 프레스 직후라 어깨 피로를 감안해 안정적인 궤적으로'),
+        seed('데드리프트', 3, 180, '5~6회', '마지막 종목. 3세트를 넘기지 않고, 자세가 깨지면 바로 끝내기')
       ]
     },
     {
-      id: generateId(),
-      name: '어깨',
+      id: WEAK_POINT_ID,
+      name: '빈약채우기데이',
+      note: '관절 부담은 줄이고 자극과 펌핑 위주로 빠르게 진행합니다.',
       exercises: [
-        seed('숄더 프레스', 4, 90),
-        seed('사이드 레터럴 레이즈', 4, 60),
-        seed('리어 델트 플라이', 3, 60),
-        seed('업라이트 로우', 3, 60)
+        seed('후면어깨 플라이', 4, 60, '15~20회', '승모근 개입을 줄이고 후면 삼각근을 먼저 깨우기'),
+        seed('클로즈그립 랫풀다운', 4, 90, '10~12회', '길게 이완한 뒤 명치 쪽으로 당기기'),
+        seed('등하부 머신', 3, 90, '12~15회', '기립근·둔근 수축감 위주. 데드리프트 회복을 방해하지 않게 조절'),
+        seed('딥스', 3, 105, '8~12회', '어깨 앞쪽이 불편하지 않은 깊이까지만'),
+        seed('케이블 삼두', 3, 60, '12~15회', '팔꿈치를 고정하고 끝까지 펴서 수축'),
+        seed('복근 운동', 4, 50, '15~20회', '행잉 레그레이즈나 케이블 크런치. 숨을 뱉으며 수축'),
+        seed('사이드 레터럴 레이즈', 4, 50, '15~20회', '고반복으로 측면 삼각근 마무리')
       ]
     },
     {
-      id: generateId(),
-      name: '가슴',
+      id: TARGET_ID,
+      name: '타깃채우기데이',
+      note: '전신데이에서 덜 다룬 햄스트링·대퇴사두, 중부 등, 윗가슴, 이두를 채웁니다.',
       exercises: [
-        seed('벤치 프레스', 4, 120),
-        seed('인클라인 덤벨 프레스', 4, 90),
-        seed('체스트 플라이', 3, 60),
-        seed('딥스', 3, 90)
-      ]
-    },
-    {
-      id: generateId(),
-      name: '하체',
-      exercises: [
-        seed('스쿼트', 5, 180),
-        seed('레그 프레스', 4, 120),
-        seed('레그 익스텐션', 3, 60),
-        seed('레그 컬', 3, 60),
-        seed('런지', 3, 90)
+        seed('레그 컬', 4, 75, '12~15회', '데드리프트 피로가 남았으면 중량을 낮추고 천천히 내리기'),
+        seed('레그 익스텐션', 4, 75, '12~15회', '맨 위에서 1초 멈춰 대퇴사두 수축'),
+        seed('시티드 로우', 4, 90, '10~12회', '견갑골을 모았다 펴며 중부 등 두께 자극'),
+        seed('인클라인 덤벨 프레스', 4, 105, '10~12회', '벤치 각도 30도 안팎으로 윗가슴'),
+        seed('사이드 레터럴 레이즈', 4, 50, '15~20회', '빈약채우기데이와 다른 도구(케이블·덤벨)로'),
+        seed('덤벨 컬', 4, 60, '10~12회', '반동을 최소화해 이두 고립')
       ]
     }
   ];
+}
+
+function toText(raw: unknown, maxLength: number): string {
+  return typeof raw === 'string' ? raw.trim().slice(0, maxLength) : '';
 }
 
 function toExercise(raw: any): Exercise | null {
@@ -90,7 +111,9 @@ function toExercise(raw: any): Exercise | null {
     id: typeof raw?.id === 'string' && raw.id ? raw.id : generateId(),
     name,
     sets: Number.isFinite(sets) && sets > 0 ? Math.min(20, sets) : 3,
-    restSec: Number.isFinite(restSec) && restSec > 0 ? Math.min(3600, restSec) : 90
+    restSec: Number.isFinite(restSec) && restSec > 0 ? Math.min(3600, restSec) : 90,
+    reps: toText(raw?.reps, 20),
+    note: toText(raw?.note, 120)
   };
 }
 
@@ -104,6 +127,7 @@ export function sanitizeRoutines(raw: unknown): Routine[] {
       return {
         id: typeof r?.id === 'string' && r.id ? r.id : generateId(),
         name,
+        note: toText(r?.note, 200),
         exercises: Array.isArray(r?.exercises)
           ? r.exercises.map(toExercise).filter((e: Exercise | null): e is Exercise => e !== null)
           : []

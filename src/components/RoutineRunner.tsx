@@ -9,6 +9,8 @@ interface RoutineRunnerProps {
   progress: RoutineProgress;
   timer: RestTimer;
   isDone: boolean;
+  /** 완료 화면에서 알려줄 다음 차례. 추천 순서가 비어 있으면 없다 */
+  nextRoutineName?: string;
   onCompleteSet: () => void;
   onSkipRest: () => void;
   onSkipExercise: () => void;
@@ -20,6 +22,7 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
   progress,
   timer,
   isDone,
+  nextRoutineName,
   onCompleteSet,
   onSkipRest,
   onSkipExercise,
@@ -34,6 +37,12 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
         <div className="text-center">
           <p className="text-2xl font-black text-emerald-400">{routine.name} 완료</p>
           <p className="text-xs text-slate-400 mt-1">{totalSets(routine)}세트 전부 끝냈습니다</p>
+          <p className="text-xs text-slate-400 mt-3">오늘 도장을 찍었습니다</p>
+          {nextRoutineName && (
+            <p className="text-xs text-slate-400 mt-0.5">
+              다음 차례는 <strong className="text-indigo-300">{nextRoutineName}</strong>
+            </p>
+          )}
         </div>
         <button
           onClick={onQuit}
@@ -90,6 +99,7 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
               {exercise.name}{' '}
               <span className="text-indigo-400">{progress.completedSets + 1}세트</span>
             </p>
+            {exercise.reps && <p className="text-xs text-slate-400 mt-0.5">{exercise.reps}</p>}
           </div>
           <button
             onClick={onSkipRest}
@@ -124,7 +134,11 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
             </div>
             <p className="text-sm font-bold text-indigo-300 mt-2.5 tabular-nums">
               {progress.completedSets + 1} / {exercise.sets} 세트
+              {exercise.reps && <span className="text-white"> · {exercise.reps}</span>}
             </p>
+            {exercise.note && (
+              <p className="text-xs text-slate-400 mt-3 leading-relaxed">{exercise.note}</p>
+            )}
           </div>
 
           <button
@@ -169,6 +183,7 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
               </span>
               <span className="text-[10px] tabular-nums shrink-0">
                 {i === progress.exerciseIndex ? `${progress.completedSets}/${ex.sets}` : `${ex.sets}세트`}
+                {ex.reps && ` · ${ex.reps}`}
               </span>
             </div>
           ))}
