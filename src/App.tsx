@@ -7,6 +7,7 @@ import { RoutineEditSheet } from './components/RoutineEditSheet';
 import { WeekStamps } from './components/WeekStamps';
 import { useRestTimer } from './hooks/useRestTimer';
 import { useWakeLock } from './hooks/useWakeLock';
+import { useBackButton } from './hooks/useBackButton';
 import { loadSettings, saveSettings, Settings } from './utils/storage';
 import {
   Routine,
@@ -170,6 +171,14 @@ export const App: React.FC = () => {
   const isIdle = !timer.isRunning && !timer.isFinished;
   const editingRoutine = editingId ? routines.find((r) => r.id === editingId) ?? null : null;
   const recommendedId = nextRoutineId(rotation);
+
+  // 뒤로가기로 닫을 화면들. 아래에 깔린 것부터 적는다.
+  // 진행 중인 루틴은 넣지 않는다. 뒤로가기 한 번에 운동이 중단되면 안 된다.
+  const backClosers: (() => void)[] = [];
+  if (tab === 'routine') backClosers.push(() => setTab('timer'));
+  if (editingRoutine) backClosers.push(() => setEditingId(null));
+  if (isSettingsOpen) backClosers.push(() => setIsSettingsOpen(false));
+  useBackButton(backClosers);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans max-w-lg mx-auto border-x border-slate-900 relative">
