@@ -17,6 +17,8 @@ export interface Routine {
   name: string;
   /** 루틴 전체에 대한 메모 ("매 세트 1~2개 남기고 끊기") */
   note: string;
+  /** 루틴을 끝낸 뒤 완료 화면에서 안내할 마무리 운동 ("인터벌") */
+  cooldown: string;
   exercises: Exercise[];
 }
 
@@ -47,6 +49,12 @@ const FULL_BODY_ID = 'default-full';
 const WEAK_POINT_ID = 'default-weak';
 const TARGET_ID = 'default-target';
 
+const DEFAULT_COOLDOWNS: Record<string, string> = {
+  [FULL_BODY_ID]: '마이마운틴',
+  [WEAK_POINT_ID]: '인터벌',
+  [TARGET_ID]: '인터벌'
+};
+
 /** 기본 루틴을 도는 차례: 전신 - 빈약 - 전신 - 타깃 */
 export const DEFAULT_ROTATION_ORDER = [FULL_BODY_ID, WEAK_POINT_ID, FULL_BODY_ID, TARGET_ID];
 
@@ -59,6 +67,7 @@ export function createDefaultRoutines(): Routine[] {
     {
       id: FULL_BODY_ID,
       name: '전신데이',
+      cooldown: DEFAULT_COOLDOWNS[FULL_BODY_ID],
       note: '매 세트 실패 지점까지 가지 않고 1~2개 남기고 끊습니다. 그래야 마지막 데드리프트까지 집중력이 남습니다.',
       exercises: [
         seed('풀업', 4, 135, '6~10회', '웜업 겸 상체 당기기. 중량을 달 수 있으면 6~8회'),
@@ -71,6 +80,7 @@ export function createDefaultRoutines(): Routine[] {
     {
       id: WEAK_POINT_ID,
       name: '빈약채우기데이',
+      cooldown: DEFAULT_COOLDOWNS[WEAK_POINT_ID],
       note: '관절 부담은 줄이고 자극과 펌핑 위주로 빠르게 진행합니다.',
       exercises: [
         seed('후면어깨 플라이', 4, 60, '15~20회', '승모근 개입을 줄이고 후면 삼각근을 먼저 깨우기'),
@@ -85,6 +95,7 @@ export function createDefaultRoutines(): Routine[] {
     {
       id: TARGET_ID,
       name: '타깃채우기데이',
+      cooldown: DEFAULT_COOLDOWNS[TARGET_ID],
       note: '전신데이에서 덜 다룬 햄스트링·대퇴사두, 중부 등, 윗가슴, 이두를 채웁니다.',
       exercises: [
         seed('레그 컬', 4, 75, '12~15회', '데드리프트 피로가 남았으면 중량을 낮추고 천천히 내리기'),
@@ -124,10 +135,14 @@ export function sanitizeRoutines(raw: unknown): Routine[] {
     .map((r: any): Routine | null => {
       const name = typeof r?.name === 'string' ? r.name.trim() : '';
       if (!name) return null;
+      const id = typeof r?.id === 'string' && r.id ? r.id : generateId();
       return {
-        id: typeof r?.id === 'string' && r.id ? r.id : generateId(),
+        id,
         name,
         note: toText(r?.note, 200),
+        // 마무리 안내가 생기기 전에 저장된 기본 루틴은 칸 자체가 없다. 그때만 기본값을 채우고,
+        // 일부러 비운 값('')은 그대로 둔다
+        cooldown: typeof r?.cooldown === 'string' ? toText(r.cooldown, 40) : DEFAULT_COOLDOWNS[id] ?? '',
         exercises: Array.isArray(r?.exercises)
           ? r.exercises.map(toExercise).filter((e: Exercise | null): e is Exercise => e !== null)
           : []

@@ -71,6 +71,18 @@ export const RoutineEditSheet: React.FC<RoutineEditSheetProps> = ({
           className="w-full mt-3 resize-none bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed"
         />
 
+        <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
+          <span className="shrink-0">마무리 운동</span>
+          <input
+            type="text"
+            value={routine.cooldown}
+            onChange={(e) => onChange({ ...routine, cooldown: e.target.value })}
+            placeholder="끝나고 안내할 운동 (예: 인터벌)"
+            maxLength={40}
+            className="flex-1 min-w-0 bg-slate-800/60 border border-slate-700/60 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+        </label>
+
         <div className="space-y-2 pt-3">
           {routine.exercises.map((ex, i) => (
             <div key={ex.id} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5">

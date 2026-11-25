@@ -35,9 +35,17 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
           <Flag className="w-9 h-9 text-emerald-400" />
         </div>
         <div className="text-center">
-          <p className="text-2xl font-black text-emerald-400">{routine.name} 완료</p>
-          <p className="text-xs text-slate-400 mt-1">{totalSets(routine)}세트 전부 끝냈습니다</p>
-          <p className="text-xs text-slate-400 mt-3">오늘 도장을 찍었습니다</p>
+          <p className="text-2xl font-black text-emerald-400">고생하셨습니다!</p>
+          <p className="text-xs text-slate-400 mt-1">
+            {routine.name} {totalSets(routine)}세트를 끝냈습니다
+          </p>
+          {routine.cooldown && (
+            <div className="mt-4 px-5 py-3 rounded-2xl bg-amber-950/30 border border-amber-700/40">
+              <p className="text-[11px] font-semibold text-amber-400/90">마무리 운동</p>
+              <p className="text-xl font-black text-amber-200 mt-0.5">{routine.cooldown}</p>
+            </div>
+          )}
+          <p className="text-xs text-slate-400 mt-4">오늘 도장을 찍었습니다</p>
           {nextRoutineName && (
             <p className="text-xs text-slate-400 mt-0.5">
               다음 차례는 <strong className="text-indigo-300">{nextRoutineName}</strong>
