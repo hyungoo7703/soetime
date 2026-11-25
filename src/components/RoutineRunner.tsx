@@ -85,7 +85,8 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
   }
 
   const exercise = routine.exercises[progress.exerciseIndex];
-  const isResting = timer.isRunning || timer.isFinished;
+  // 휴식이 끝나면 따로 누르지 않아도 운동 화면으로 돌아온다. 세트마다 한 번만 누르면 된다.
+  const isResting = timer.isRunning;
   const done = doneSets(routine, progress);
   const total = totalSets(routine);
 
@@ -121,7 +122,7 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
           <TimerDial
             remainingMs={timer.remainingMs}
             totalMs={timer.totalMs}
-            isFinished={timer.isFinished}
+            isFinished={false}
           />
           <div className="text-center mt-2">
             <p className="text-xs text-slate-400">다음</p>
@@ -150,7 +151,7 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
             className="mt-2 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-base font-black active:scale-[0.99] transition shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
           >
             <SkipForward className="w-5 h-5" />
-            {timer.isFinished ? '다음 세트 시작' : '휴식 건너뛰고 시작'}
+            휴식 건너뛰고 시작
           </button>
           {onUndo && (
             <button
@@ -164,7 +165,16 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
         </>
       ) : (
         <>
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+          <div
+            className={`bg-slate-900 border rounded-2xl p-5 text-center ${
+              timer.isFinished ? 'border-emerald-500/60' : 'border-slate-800'
+            }`}
+          >
+            {timer.isFinished && (
+              <p className="inline-block mb-2 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-xs font-bold text-emerald-300">
+                휴식 끝 · 시작하세요
+              </p>
+            )}
             <p className="text-2xl font-black text-white tracking-tight">{exercise.name}</p>
             <p className="text-xs text-slate-400 mt-1">
               휴식 {formatRest(exercise.restSec)}
