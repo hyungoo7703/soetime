@@ -24,6 +24,9 @@ import { BackupData } from './utils/backup';
 import { requestPersistentStorage, PersistState } from './utils/persistence';
 import { playBeep, vibrate, unlockAudio } from './utils/alert';
 
+// 루틴 중 마지막으로 손댄 뒤 화면을 켜 두는 시간. 한 세트가 이보다 길어지는 일은 거의 없다
+const ROUTINE_AWAKE_MS = 10 * 60 * 1000;
+
 function presetLabel(sec: number): string {
   if (sec < 60) return `${sec}초`;
   const m = Math.floor(sec / 60);
@@ -78,7 +81,23 @@ export const App: React.FC = () => {
   }, [settings.soundEnabled, settings.vibrateEnabled]);
 
   const timer = useRestTimer(handleFinish);
-  const { state: wakeLockState } = useWakeLock(settings.keepScreenOn && timer.isRunning);
+
+  // 루틴 중에는 세트를 하는 동안에도 화면을 켜 둔다. 꺼지면 잠금을 풀어야 '세트 완료'를 누를 수 있다.
+  // 다만 10분 넘게 손대지 않으면 놓아준다. 루틴을 켜 둔 채 자리를 떠도 화면이 밤새 켜져 있지 않게 한다.
+  const [isRoutineAwake, setIsRoutineAwake] = useState(false);
+  useEffect(() => {
+    if (!progress) {
+      setIsRoutineAwake(false);
+      return;
+    }
+    setIsRoutineAwake(true);
+    const id = window.setTimeout(() => setIsRoutineAwake(false), ROUTINE_AWAKE_MS);
+    return () => window.clearTimeout(id);
+  }, [progress, timer.isRunning]);
+
+  const { state: wakeLockState } = useWakeLock(
+    settings.keepScreenOn && (timer.isRunning || isRoutineAwake)
+  );
 
   const startPreset = (sec: number) => {
     unlockAudio(); // 사용자 제스처 안에서 오디오를 깨워둬야 완료 시 소리가 난다

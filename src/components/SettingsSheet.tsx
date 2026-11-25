@@ -207,7 +207,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                   ? '이 브라우저는 지원하지 않습니다'
                   : wakeLockState === 'failed'
                   ? '요청이 거부됐습니다 (iOS는 18.4 이상 필요)'
-                  : '타이머가 도는 동안 화면이 꺼지지 않습니다'
+                  : '타이머가 돌거나 루틴을 하는 동안 화면이 꺼지지 않습니다'
               }
               on={settings.keepScreenOn}
               disabled={wakeLockState === 'unsupported'}
