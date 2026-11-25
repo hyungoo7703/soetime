@@ -5,12 +5,15 @@ import { Routine, Exercise, generateId, formatRest } from '../utils/routines';
 interface RoutineEditSheetProps {
   routine: Routine;
   onChange: (next: Routine) => void;
+  /** 루틴이 하나뿐이면 지울 수 없어 undefined로 온다 */
+  onDelete?: () => void;
   onClose: () => void;
 }
 
 export const RoutineEditSheet: React.FC<RoutineEditSheetProps> = ({
   routine,
   onChange,
+  onDelete,
   onClose
 }) => {
   const [newName, setNewName] = useState('');
@@ -206,6 +209,26 @@ export const RoutineEditSheet: React.FC<RoutineEditSheetProps> = ({
             추가
           </button>
         </form>
+
+        <div className="mt-5 pt-3 border-t border-slate-800">
+          <button
+            type="button"
+            disabled={!onDelete}
+            onClick={() => {
+              if (onDelete && window.confirm(`'${routine.name}' 루틴을 삭제할까요?
+되돌릴 수 없습니다.`)) onDelete();
+            }}
+            className="w-full py-2.5 rounded-xl border border-rose-900/60 text-xs font-semibold text-rose-400 hover:bg-rose-950/40 disabled:border-slate-800 disabled:text-slate-600 flex items-center justify-center gap-1.5 active:scale-[0.99] transition"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            이 루틴 삭제
+          </button>
+          {!onDelete && (
+            <p className="mt-1.5 text-[11px] text-slate-500 text-center">
+              루틴이 하나뿐이라 지울 수 없습니다.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

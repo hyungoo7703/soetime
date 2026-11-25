@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Settings as SettingsIcon, Square, RotateCcw, Sun, Timer, ListChecks, Pencil, Play, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Square, RotateCcw, Sun, Timer, ListChecks, Pencil, Play, AlertTriangle, Plus } from 'lucide-react';
 import { TimerDial } from './components/TimerDial';
 import { SettingsSheet } from './components/SettingsSheet';
 import { RoutineRunner } from './components/RoutineRunner';
@@ -17,7 +17,8 @@ import {
   loadProgress,
   saveProgress,
   clearProgress,
-  totalSets
+  totalSets,
+  generateId
 } from './utils/routines';
 import { Rotation, loadRotation, saveRotation, setStamp, nextRoutineId, toDateKey } from './utils/rotation';
 import { BackupData } from './utils/backup';
@@ -199,6 +200,19 @@ export const App: React.FC = () => {
     setProgress(next);
     saveProgress(next);
     timer.stop();
+  };
+
+  const addRoutine = () => {
+    const routine: Routine = { id: generateId(), name: '새 루틴', note: '', cooldown: '', exercises: [] };
+    setRoutines((prev) => [...prev, routine]);
+    setEditingId(routine.id);
+  };
+
+  /** 지운 루틴은 추천 순서에서도 뺀다. 이미 찍힌 도장은 그대로 둔다. */
+  const deleteRoutine = (routineId: string) => {
+    setRoutines((prev) => prev.filter((r) => r.id !== routineId));
+    setRotation((prev) => ({ ...prev, order: prev.order.filter((id) => id !== routineId) }));
+    setEditingId(null);
   };
 
   /** 복원하면 루틴 id가 통째로 바뀐다. 진행 중이던 세트는 가리킬 곳이 없으므로 접는다. */
@@ -450,6 +464,13 @@ export const App: React.FC = () => {
                 </button>
               </div>
             ))}
+            <button
+              onClick={addRoutine}
+              className="w-full py-3 rounded-2xl border border-dashed border-slate-700 text-xs font-semibold text-slate-400 hover:text-slate-200 hover:border-slate-500 flex items-center justify-center gap-1.5 active:scale-[0.99] transition"
+            >
+              <Plus className="w-4 h-4" />
+              루틴 추가
+            </button>
           </section>
         )}
       </main>
@@ -474,6 +495,8 @@ export const App: React.FC = () => {
           onChange={(next) =>
             setRoutines((prev) => prev.map((r) => (r.id === next.id ? next : r)))
           }
+          // 마지막 하나는 지울 수 없다. 루틴이 하나도 없으면 다음에 열 때 기본 루틴이 다시 들어온다
+          onDelete={routines.length > 1 ? () => deleteRoutine(editingRoutine.id) : undefined}
           onClose={() => setEditingId(null)}
         />
       )}

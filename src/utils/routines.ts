@@ -111,6 +111,8 @@ export function createDefaultRoutines(): Routine[] {
   ];
 }
 
+const UNNAMED_ROUTINE = '이름 없는 루틴';
+
 function toText(raw: unknown, maxLength: number): string {
   return typeof raw === 'string' ? raw.trim().slice(0, maxLength) : '';
 }
@@ -135,7 +137,10 @@ export function sanitizeRoutines(raw: unknown): Routine[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((r: any): Routine | null => {
-      const name = typeof r?.name === 'string' ? r.name.trim() : '';
+      // 이름 없는 항목은 엉뚱한 JSON일 수 있어 버린다. 다만 id와 운동 목록을 갖춘 것은 이름 칸만 비운
+      // 진짜 루틴이므로 살린다. 버리면 편집 중 이름을 지운 루틴이 다음에 열 때 통째로 사라진다.
+      const looksLikeRoutine = typeof r?.id === 'string' && r.id !== '' && Array.isArray(r?.exercises);
+      const name = toText(r?.name, 60) || (looksLikeRoutine ? UNNAMED_ROUTINE : '');
       if (!name) return null;
       const id = typeof r?.id === 'string' && r.id ? r.id : generateId();
       return {
