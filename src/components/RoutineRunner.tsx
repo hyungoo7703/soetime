@@ -131,9 +131,23 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
             </p>
             {exercise.reps && <p className="text-xs text-slate-400 mt-0.5">{exercise.reps}</p>}
           </div>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <button
+              onClick={() => timer.addMs(-15000)}
+              className="py-3 rounded-2xl bg-slate-800 border border-slate-700 text-sm font-bold text-slate-200 active:scale-95 transition"
+            >
+              −15초
+            </button>
+            <button
+              onClick={() => timer.addMs(15000)}
+              className="py-3 rounded-2xl bg-slate-800 border border-slate-700 text-sm font-bold text-slate-200 active:scale-95 transition"
+            >
+              +15초
+            </button>
+          </div>
           <button
             onClick={onSkipRest}
-            className="mt-4 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-base font-black active:scale-[0.99] transition shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+            className="mt-2 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-base font-black active:scale-[0.99] transition shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
           >
             <SkipForward className="w-5 h-5" />
             {timer.isFinished ? '다음 세트 시작' : '휴식 건너뛰고 시작'}
