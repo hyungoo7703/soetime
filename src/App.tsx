@@ -41,7 +41,8 @@ export const App: React.FC = () => {
   const [rotation, setRotation] = useState<Rotation>(() => loadRotation(routines));
   const [progress, setProgress] = useState<RoutineProgress | null>(() => loadProgress());
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [finishedRoutineId, setFinishedRoutineId] = useState<string | null>(null);
+  // 방금 끝낸 루틴. 완료 화면을 닫을 때까지 들고 있는다
+  const [finished, setFinished] = useState<{ routineId: string; setsDone: number } | null>(null);
 
   // 저장 실패를 조용히 넘기면 앱은 정상처럼 보이면서 편집한 루틴이 사라진다.
   // 용량 초과나 시크릿 모드에서 실제로 일어나므로 화면에 알려야 한다.
@@ -86,15 +87,15 @@ export const App: React.FC = () => {
   const activeRoutine = progress
     ? routines.find((r) => r.id === progress.routineId) ?? null
     : null;
-  const finishedRoutine = finishedRoutineId
-    ? routines.find((r) => r.id === finishedRoutineId) ?? null
+  const finishedRoutine = finished
+    ? routines.find((r) => r.id === finished.routineId) ?? null
     : null;
 
   const startRoutine = (routine: Routine) => {
     if (routine.exercises.length === 0) return;
     unlockAudio();
-    const next = { routineId: routine.id, exerciseIndex: 0, completedSets: 0 };
-    setFinishedRoutineId(null);
+    const next = { routineId: routine.id, exerciseIndex: 0, completedSets: 0, setsDone: 0 };
+    setFinished(null);
     setProgress(next);
     saveProgress(next);
     timer.stop();
@@ -102,18 +103,23 @@ export const App: React.FC = () => {
 
   const quitRoutine = () => {
     setProgress(null);
-    setFinishedRoutineId(null);
+    setFinished(null);
     clearProgress();
     timer.stop();
   };
 
-  /** 루틴을 끝까지 가면 오늘 날짜에 도장을 찍는다. 중단한 루틴은 찍지 않는다. */
-  const finishRoutine = (routineId: string) => {
-    setFinishedRoutineId(routineId);
+  /**
+   * 루틴을 끝까지 가면 오늘 날짜에 도장을 찍는다. 중단한 루틴은 찍지 않는다.
+   * 전부 건너뛰기만 해서 끝낸 세트가 없을 때도 찍지 않는다.
+   */
+  const finishRoutine = (routineId: string, setsDone: number) => {
+    setFinished({ routineId, setsDone });
     setProgress(null);
     clearProgress();
     timer.stop();
-    setRotation((prev) => setStamp(prev, toDateKey(new Date()), routineId));
+    if (setsDone > 0) {
+      setRotation((prev) => setStamp(prev, toDateKey(new Date()), routineId));
+    }
   };
 
   /** 세트를 끝내면 진행을 먼저 옮기고 휴식을 시작한다. 마지막 세트면 휴식 없이 끝난다. */
@@ -124,17 +130,18 @@ export const App: React.FC = () => {
     unlockAudio();
 
     const completedSets = progress.completedSets + 1;
+    const setsDone = progress.setsDone + 1;
     const isLastSet = completedSets >= exercise.sets;
     const isLastExercise = progress.exerciseIndex >= activeRoutine.exercises.length - 1;
 
     if (isLastSet && isLastExercise) {
-      finishRoutine(activeRoutine.id);
+      finishRoutine(activeRoutine.id, setsDone);
       return;
     }
 
     const next: RoutineProgress = isLastSet
-      ? { ...progress, exerciseIndex: progress.exerciseIndex + 1, completedSets: 0 }
-      : { ...progress, completedSets };
+      ? { ...progress, exerciseIndex: progress.exerciseIndex + 1, completedSets: 0, setsDone }
+      : { ...progress, completedSets, setsDone };
 
     setProgress(next);
     saveProgress(next);
@@ -148,7 +155,7 @@ export const App: React.FC = () => {
     if (!progress || !activeRoutine) return;
     const isLastExercise = progress.exerciseIndex >= activeRoutine.exercises.length - 1;
     if (isLastExercise) {
-      finishRoutine(activeRoutine.id);
+      finishRoutine(activeRoutine.id, progress.setsDone);
       return;
     }
     const next = { ...progress, exerciseIndex: progress.exerciseIndex + 1, completedSets: 0 };
@@ -163,7 +170,7 @@ export const App: React.FC = () => {
     setRoutines(data.routines);
     setRotation(data.rotation);
     setProgress(null);
-    setFinishedRoutineId(null);
+    setFinished(null);
     clearProgress();
     timer.stop();
   };
@@ -336,10 +343,10 @@ export const App: React.FC = () => {
             onSkipExercise={skipExercise}
             onQuit={quitRoutine}
           />
-        ) : finishedRoutine ? (
+        ) : finishedRoutine && finished ? (
           <RoutineRunner
             routine={finishedRoutine}
-            progress={{ routineId: finishedRoutine.id, exerciseIndex: 0, completedSets: 0 }}
+            progress={{ routineId: finishedRoutine.id, exerciseIndex: 0, completedSets: 0, setsDone: finished.setsDone }}
             timer={timer}
             isDone
             nextRoutineName={routines.find((r) => r.id === recommendedId)?.name}

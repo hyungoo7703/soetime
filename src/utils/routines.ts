@@ -29,6 +29,8 @@ export interface RoutineProgress {
   exerciseIndex: number;
   /** 현재 운동에서 끝낸 세트 수 */
   completedSets: number;
+  /** 이번 진행에서 실제로 끝낸 세트 수. 건너뛴 운동의 세트는 세지 않는다 */
+  setsDone: number;
 }
 
 export function generateId(): string {
@@ -182,7 +184,8 @@ export function loadProgress(): RoutineProgress | null {
     return {
       routineId: parsed.routineId,
       exerciseIndex: Math.max(0, Math.round(Number(parsed.exerciseIndex)) || 0),
-      completedSets: Math.max(0, Math.round(Number(parsed.completedSets)) || 0)
+      completedSets: Math.max(0, Math.round(Number(parsed.completedSets)) || 0),
+      setsDone: Math.max(0, Math.round(Number(parsed.setsDone)) || 0)
     };
   } catch {
     return null;

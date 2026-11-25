@@ -29,23 +29,33 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
   onQuit
 }) => {
   if (isDone) {
+    const total = totalSets(routine);
+    const hasDoneAny = progress.setsDone > 0;
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-16 gap-5">
         <div className="w-20 h-20 rounded-full bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center">
           <Flag className="w-9 h-9 text-emerald-400" />
         </div>
         <div className="text-center">
-          <p className="text-2xl font-black text-emerald-400">고생하셨습니다!</p>
-          <p className="text-xs text-slate-400 mt-1">
-            {routine.name} {totalSets(routine)}세트를 끝냈습니다
+          <p className="text-2xl font-black text-emerald-400">
+            {hasDoneAny ? '고생하셨습니다!' : '끝낸 세트가 없습니다'}
           </p>
-          {routine.cooldown && (
+          <p className="text-xs text-slate-400 mt-1">
+            {!hasDoneAny
+              ? `${routine.name}의 운동을 모두 건너뛰었습니다`
+              : progress.setsDone >= total
+              ? `${routine.name} ${total}세트를 모두 끝냈습니다`
+              : `${routine.name} ${total}세트 중 ${progress.setsDone}세트를 끝냈습니다`}
+          </p>
+          {hasDoneAny && routine.cooldown && (
             <div className="mt-4 px-5 py-3 rounded-2xl bg-amber-950/30 border border-amber-700/40">
               <p className="text-[11px] font-semibold text-amber-400/90">마무리 운동</p>
               <p className="text-xl font-black text-amber-200 mt-0.5">{routine.cooldown}</p>
             </div>
           )}
-          <p className="text-xs text-slate-400 mt-4">오늘 도장을 찍었습니다</p>
+          <p className="text-xs text-slate-400 mt-4">
+            {hasDoneAny ? '오늘 도장을 찍었습니다' : '도장은 찍지 않았습니다'}
+          </p>
           {nextRoutineName && (
             <p className="text-xs text-slate-400 mt-0.5">
               다음 차례는 <strong className="text-indigo-300">{nextRoutineName}</strong>
