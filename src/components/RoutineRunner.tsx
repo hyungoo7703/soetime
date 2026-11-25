@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, SkipForward, Flag } from 'lucide-react';
+import { Check, X, SkipForward, Flag, Undo2 } from 'lucide-react';
 import { Routine, RoutineProgress, doneSets, totalSets, formatRest } from '../utils/routines';
 import { RestTimer } from '../hooks/useRestTimer';
 import { TimerDial } from './TimerDial';
@@ -11,6 +11,8 @@ interface RoutineRunnerProps {
   isDone: boolean;
   /** 완료 화면에서 알려줄 다음 차례. 추천 순서가 비어 있으면 없다 */
   nextRoutineName?: string;
+  /** 방금 누른 '세트 완료'나 '건너뛰기'를 되돌린다. 되돌릴 것이 없으면 undefined */
+  onUndo?: () => void;
   onCompleteSet: () => void;
   onSkipRest: () => void;
   onSkipExercise: () => void;
@@ -23,6 +25,7 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
   timer,
   isDone,
   nextRoutineName,
+  onUndo,
   onCompleteSet,
   onSkipRest,
   onSkipExercise,
@@ -68,6 +71,15 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
         >
           닫기
         </button>
+        {onUndo && (
+          <button
+            onClick={onUndo}
+            className="-mt-2 py-2 text-xs font-semibold text-slate-500 hover:text-slate-300 flex items-center gap-1.5 active:scale-95 transition"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            잘못 눌렀다면 되돌리기
+          </button>
+        )}
       </div>
     );
   }
@@ -126,6 +138,15 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
             <SkipForward className="w-5 h-5" />
             {timer.isFinished ? '다음 세트 시작' : '휴식 건너뛰고 시작'}
           </button>
+          {onUndo && (
+            <button
+              onClick={onUndo}
+              className="mt-2 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 active:scale-95 transition"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              방금 누른 것 되돌리기
+            </button>
+          )}
         </>
       ) : (
         <>
@@ -173,6 +194,15 @@ export const RoutineRunner: React.FC<RoutineRunnerProps> = ({
           >
             이 운동 건너뛰기
           </button>
+          {onUndo && (
+            <button
+              onClick={onUndo}
+              className="mt-2 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 active:scale-95 transition"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              방금 누른 것 되돌리기
+            </button>
+          )}
         </>
       )}
 

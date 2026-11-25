@@ -43,6 +43,9 @@ export const App: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   // 방금 끝낸 루틴. 완료 화면을 닫을 때까지 들고 있는다
   const [finished, setFinished] = useState<{ routineId: string; setsDone: number } | null>(null);
+  // '세트 완료'나 '건너뛰기'를 누르기 직전 상태. 잘못 눌렀을 때 한 번 되돌린다.
+  // 마지막 세트를 잘못 누르면 도장까지 찍히므로 도장도 같이 들고 있는다.
+  const [undo, setUndo] = useState<{ progress: RoutineProgress; rotation: Rotation } | null>(null);
 
   // 저장 실패를 조용히 넘기면 앱은 정상처럼 보이면서 편집한 루틴이 사라진다.
   // 용량 초과나 시크릿 모드에서 실제로 일어나므로 화면에 알려야 한다.
@@ -96,6 +99,7 @@ export const App: React.FC = () => {
     unlockAudio();
     const next = { routineId: routine.id, exerciseIndex: 0, completedSets: 0, setsDone: 0 };
     setFinished(null);
+    setUndo(null);
     setProgress(next);
     saveProgress(next);
     timer.stop();
@@ -104,7 +108,19 @@ export const App: React.FC = () => {
   const quitRoutine = () => {
     setProgress(null);
     setFinished(null);
+    setUndo(null);
     clearProgress();
+    timer.stop();
+  };
+
+  /** 방금 누른 '세트 완료'나 '건너뛰기'를 되돌린다. 이미 지나간 휴식 시간은 되살리지 않는다. */
+  const undoLast = () => {
+    if (!undo) return;
+    setProgress(undo.progress);
+    saveProgress(undo.progress);
+    setRotation(undo.rotation);
+    setFinished(null);
+    setUndo(null);
     timer.stop();
   };
 
@@ -128,6 +144,7 @@ export const App: React.FC = () => {
     const exercise = activeRoutine.exercises[progress.exerciseIndex];
     if (!exercise) return;
     unlockAudio();
+    setUndo({ progress, rotation });
 
     const completedSets = progress.completedSets + 1;
     const setsDone = progress.setsDone + 1;
@@ -153,6 +170,7 @@ export const App: React.FC = () => {
 
   const skipExercise = () => {
     if (!progress || !activeRoutine) return;
+    setUndo({ progress, rotation });
     const isLastExercise = progress.exerciseIndex >= activeRoutine.exercises.length - 1;
     if (isLastExercise) {
       finishRoutine(activeRoutine.id, progress.setsDone);
@@ -171,6 +189,7 @@ export const App: React.FC = () => {
     setRotation(data.rotation);
     setProgress(null);
     setFinished(null);
+    setUndo(null);
     clearProgress();
     timer.stop();
   };
@@ -338,6 +357,7 @@ export const App: React.FC = () => {
             progress={progress}
             timer={timer}
             isDone={false}
+            onUndo={undo ? undoLast : undefined}
             onCompleteSet={completeSet}
             onSkipRest={timer.stop}
             onSkipExercise={skipExercise}
@@ -349,6 +369,7 @@ export const App: React.FC = () => {
             progress={{ routineId: finishedRoutine.id, exerciseIndex: 0, completedSets: 0, setsDone: finished.setsDone }}
             timer={timer}
             isDone
+            onUndo={undo ? undoLast : undefined}
             nextRoutineName={routines.find((r) => r.id === recommendedId)?.name}
             onCompleteSet={() => {}}
             onSkipRest={() => {}}
